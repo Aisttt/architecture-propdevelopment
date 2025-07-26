@@ -1,0 +1,157 @@
+---
+# Сетевые политики для PropDevelopment Task5
+# Разрешает трафик только между парами:
+# 1. front-end ↔ back-end-api  
+# 2. admin-front-end ↔ admin-back-end-api
+
+# Политика 1: Разрешить трафик от front-end к back-end-api
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-front-end-to-back-end-api
+  namespace: propdevelopment-services
+spec:
+  podSelector:
+    matchLabels:
+      role: back-end-api
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          role: front-end
+    ports:
+    - protocol: TCP
+      port: 80
+
+---
+# Политика 2: Разрешить трафик от back-end-api к front-end (для ответов)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-back-end-api-to-front-end
+  namespace: propdevelopment-services
+spec:
+  podSelector:
+    matchLabels:
+      role: front-end
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          role: back-end-api
+    ports:
+    - protocol: TCP
+      port: 80
+
+---
+# Политика 3: Разрешить трафик от admin-front-end к admin-back-end-api
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-admin-front-end-to-admin-back-end-api
+  namespace: propdevelopment-services
+spec:
+  podSelector:
+    matchLabels:
+      role: admin-back-end-api
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          role: admin-front-end
+    ports:
+    - protocol: TCP
+      port: 80
+
+---
+# Политика 4: Разрешить трафик от admin-back-end-api к admin-front-end (для ответов)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-admin-back-end-api-to-admin-front-end
+  namespace: propdevelopment-services
+spec:
+  podSelector:
+    matchLabels:
+      role: admin-front-end
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          role: admin-back-end-api
+    ports:
+    - protocol: TCP
+      port: 80
+
+---
+# Политика 5: По умолчанию запретить весь входящий трафик в namespace
+# Это обеспечивает "default deny" политику - все соединения запрещены, 
+# кроме явно разрешенных выше
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-ingress
+  namespace: propdevelopment-services
+spec:
+  podSelector: {}  # Применить ко всем подам в namespace
+  policyTypes:
+  - Ingress
+  # Пустой массив ingress означает, что входящий трафик запрещен
+  # (кроме разрешенного другими политиками)
+
+---
+# Политика 6: По умолчанию запретить весь исходящий трафик в namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all-egress
+  namespace: propdevelopment-services
+spec:
+  podSelector: {}  # Применить ко всем подам в namespace
+  policyTypes:
+  - Egress
+  egress:
+  # Разрешаем только DNS и трафик к разрешенным сервисам
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Разрешаем исходящий трафик между разрешенными парами
+  - to:
+    - podSelector:
+        matchLabels:
+          role: back-end-api
+    ports:
+    - protocol: TCP
+      port: 80
+  - to:
+    - podSelector:
+        matchLabels:
+          role: front-end
+    ports:
+    - protocol: TCP
+      port: 80
+  - to:
+    - podSelector:
+        matchLabels:
+          role: admin-back-end-api
+    ports:
+    - protocol: TCP
+      port: 80
+  - to:
+    - podSelector:
+        matchLabels:
+          role: admin-front-end
+    ports:
+    - protocol: TCP
+      port: 80 
