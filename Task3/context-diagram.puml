@@ -1,0 +1,45 @@
+@startuml context-diagram
+!include <C4/C4_Context>
+
+title Диаграмма контекста C4: Интеграция "Умный дом" PropDevelopment
+
+LAYOUT_WITH_LEGEND()
+
+' Акторы
+Person(owner, "Собственник недвижимости", "Владелец квартиры/дома, управляет доступом к своей недвижимости")
+Person(resident, "Жилец", "Проживает в недвижимости, получает доступ через умные устройства")
+Person(guest, "Гость", "Временный посетитель, получает разовый доступ")
+Person(management, "Управляющая компания", "Администрирует общие зоны, управляет доступом к территории")
+
+' Основная система PropDevelopment
+System(propdevelopment, "PropDevelopment", "Основная платформа управления недвижимостью с мобильным приложением для собственников")
+
+' Внешние системы
+System_Ext(smart_home_platform, "Платформа Умный дом (Партнер)", "Внешняя система партнера, управляющая IoT-устройствами и биометрией")
+System_Ext(intercom_device, "Интеллектуальный домофон", "IoT-устройство с биометрией + Secure Element (биошаблоны хранятся ТОЛЬКО здесь)")
+System_Ext(barrier_device, "Интеллектуальный шлагбаум", "IoT-устройство с распознаванием номеров автомобилей")
+System_Ext(notification_service, "Сервис уведомлений", "Push-уведомления, SMS, email для владельцев и жильцов")
+
+' Взаимодействия - Пользователи с PropDevelopment
+Rel(owner, propdevelopment, "Управляет доступом + видеозвонки", "Мобильное приложение/TLS 1.3")
+Rel(resident, propdevelopment, "Получает доступ", "Мобильное приложение/TLS 1.3") 
+Rel(management, propdevelopment, "Администрирует", "Web-интерфейс УК/TLS 1.3")
+
+' Взаимодействия - PropDevelopment с внешними системами
+Rel(propdevelopment, smart_home_platform, "Синхронизирует права доступа", "REST API/TLS 1.3 + mTLS")
+Rel(propdevelopment, notification_service, "Отправляет уведомления", "Push API/TLS 1.3")
+
+' Взаимодействия - Платформа партнера с устройствами
+Rel(smart_home_platform, intercom_device, "Управляет биометрией (НЕ передает биошаблоны)", "MQTT/TLS 1.3")
+Rel(smart_home_platform, barrier_device, "Управляет распознаванием", "MQTT/TLS 1.3")
+
+' Взаимодействия - Пользователи с устройствами
+Rel(resident, intercom_device, "Проходит биометрию", "Локальное сравнение в Secure Element")
+Rel(guest, intercom_device, "Звонит собственнику", "Видеосвязь/RTSP→WebRTC/SRTP")
+Rel(owner, barrier_device, "Въезжает на территорию", "Распознавание номера")
+
+' Взаимодействия - Уведомления и видео
+Rel(smart_home_platform, owner, "Уведомления о доступе", "Через PropDevelopment/TLS 1.3")
+Rel(intercom_device, propdevelopment, "Видеопоток для звонков гостей", "RTSP/TLS → WebRTC/SRTP")
+
+@enduml 

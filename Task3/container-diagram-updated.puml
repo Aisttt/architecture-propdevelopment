@@ -1,0 +1,154 @@
+@startuml container-diagram-updated
+!include <C4/C4_Container>
+
+title Диаграмма контейнеров C4: PropDevelopment + Умный дом (обновленная)
+
+LAYOUT_WITH_LEGEND()
+
+' Внешние пользователи
+Person(owner, "Собственник", "Владелец недвижимости")
+Person(resident, "Жилец", "Проживающий в недвижимости")
+Person(management, "УК", "Управляющая компания")
+
+' Внешние системы
+System_Ext(smart_home_partner, "Платформа Умный дом", "Партнерская система управления IoT-устройствами")
+System_Ext(notification_service, "Сервис уведомлений", "Push/SMS/Email уведомления")
+
+' PropDevelopment - Sales Domain
+System_Boundary(sales_boundary, "Sales Domain") {
+    Container(sales_web, "Витрина продаж", "Web Application", "Подбор и бронирование недвижимости")
+    Container(client_tour_app, "client-tour-app", "Application, React", "Онлайн-туры по недвижимости")
+    Container(client_mart_app, "client-mart-app", "Application, React", "Онлайн-сделки")
+    Container(client_crm_app, "client-CRM-app", "Application, React", "Управление клиентскими данными")
+    Container(client_mart_estate_app, "client-mart-estate-app", "Application, React", "Управление данными о недвижимости")
+    
+    ContainerDb(sales_db, "Sales DB", "PostgreSQL", "Данные продаж и клиентов")
+    ContainerDb(tour_db, "Tour DB", "MongoDB", "Данные туров")
+    ContainerDb(mart_db, "Mart DB", "PostgreSQL", "Данные сделок")
+    ContainerDb(crm_db, "CRM DB", "MSSQL", "CRM данные")
+    ContainerDb(estate_db, "Estate DB", "PostgreSQL", "Данные недвижимости")
+}
+
+' PropDevelopment - Housing Domain (ОБНОВЛЕН)
+System_Boundary(housing_boundary, "Housing Domain") {
+    Container(housing_web, "Витрина ЖКУ", "Web Application", "Портал для собственников")
+    Container(tenant_core_app, "tenant-core-app", "Application, Java", "Предоставление услуг ЖКУ")
+    Container(housing_crm, "Housing CRM", "Application, Java", "Управление данными собственников")
+    
+    ' НОВЫЕ КОМПОНЕНТЫ ДЛЯ УМНОГО ДОМА
+    Container(smart_home_service, "Smart Home Integration", "Microservice, Java", "Интеграция с умных домом, управление доступом")
+    Container(biometric_consent_service, "Biometric Consent Service", "Microservice, Java", "Управление согласиями на биометрию (152-ФЗ)")
+    Container(access_control_service, "Access Control Service", "Microservice, Java", "Управление правами доступа к устройствам")
+    Container(iot_device_service, "IoT Device Management", "Microservice, Java", "Управление статусом IoT-устройств")
+    Container(video_streaming_service, "Video Streaming Service", "Microservice, Java", "Видеостриминг домофона (RTSP/WebRTC)")
+    
+    ContainerDb(housing_db, "Housing DB", "PostgreSQL", "Данные собственников и ЖКУ")
+    ContainerDb(tenant_db, "Tenant DB", "PostgreSQL", "Данные услуг ЖКУ")
+    ' НОВЫЕ БД ДЛЯ УМНОГО ДОМА
+    ContainerDb(smart_home_db, "Smart Home DB", "PostgreSQL Encrypted", "Данные доступа, логи устройств (БЕЗ биометрии)")
+    ContainerDb(consent_db, "Consent DB", "PostgreSQL", "Согласия на обработку биометрии")
+}
+
+' PropDevelopment - Finance Domain  
+System_Boundary(finance_boundary, "Finance Domain") {
+    Container(accountant_service, "accountant-service-1", "Application, Java", "Система финансового учета")
+    Container(directory_service, "Directory Service", "LDAP/AD", "Служба каталогов")
+    
+    ContainerDb(finance_db, "Finance DB", "PostgreSQL", "Финансовые данные")
+}
+
+' PropDevelopment - Data Domain
+System_Boundary(data_boundary, "Data Domain") {
+    Container(data_warehouse, "Data Warehouse", "Data Store", "Централизованное хранилище данных")
+    Container(bi_system, "BI System", "Analytics", "Бизнес-аналитика")
+    Container(reporting, "Reporting", "Application", "Генерация отчетов")
+}
+
+' НОВЫЙ ДОМЕН - API Gateway & Security
+System_Boundary(api_gateway_boundary, "API Gateway & Security") {
+    Container(api_gateway, "Smart Home API Gateway", "Gateway, Spring Cloud", "Единая точка входа для партнерских API")
+    Container(oauth_server, "OAuth Authorization Server", "Security, Spring Security", "Выдача токенов для партнеров")
+    Container(audit_service, "Audit & Monitoring", "Microservice, Java", "Журналирование и мониторинг безопасности")
+}
+
+' Внешние IoT устройства (ОБНОВЛЕНО)
+System_Ext(intercom_device, "Интеллектуальный домофон", "IoT Device с биометрией + Secure Element для хранения биошаблонов")
+System_Ext(barrier_device, "Интеллектуальный шлагбаум", "IoT Device с распознаванием номеров")
+
+' Мобильное приложение (ОБНОВЛЕНО)
+Container(mobile_app, "Mobile App", "Mobile Application, React Native", "Мобильное приложение собственников + управление умным домом")
+
+' Основные взаимодействия - Пользователи
+Rel(owner, mobile_app, "Управляет недвижимостью + умным домом", "HTTPS/TLS 1.3")
+Rel(resident, mobile_app, "Получает доступ", "HTTPS/TLS 1.3")
+Rel(management, housing_web, "Администрирует", "HTTPS/TLS 1.3")
+
+' Мобильное приложение с доменами
+Rel(mobile_app, sales_web, "Поиск недвижимости", "REST API/TLS")
+Rel(mobile_app, housing_web, "Управление ЖКУ", "REST API/TLS")
+Rel(mobile_app, smart_home_service, "Управление умным домом", "REST API/TLS")
+Rel(mobile_app, biometric_consent_service, "Согласия на биометрию", "REST API/TLS")
+
+' НОВЫЕ СВЯЗИ ДЛЯ ВИДЕОСТРИМИНГА
+Rel(mobile_app, video_streaming_service, "Видеозвонки от гостей", "WebRTC/SRTP")
+Rel(owner, video_streaming_service, "Просмотр видео с домофона", "WebRTC/SRTP")
+
+' Sales Domain - внутренние связи
+Rel(sales_web, client_tour_app, "Заказ туров", "REST")
+Rel(sales_web, client_mart_app, "Онлайн-сделки", "REST")
+Rel(client_crm_app, crm_db, "Управление данными", "SQL")
+Rel(client_tour_app, tour_db, "Данные туров", "NoSQL")
+Rel(client_mart_app, mart_db, "Данные сделок", "SQL")
+
+' Housing Domain - внутренние связи
+Rel(housing_web, tenant_core_app, "Услуги ЖКУ", "REST")
+Rel(housing_crm, housing_db, "Данные собственников", "SQL")
+Rel(tenant_core_app, tenant_db, "Управление услугами", "SQL")
+
+' НОВЫЕ СВЯЗИ ДЛЯ УМНОГО ДОМА
+Rel(smart_home_service, smart_home_db, "Данные доступа", "SQL Encrypted")
+Rel(biometric_consent_service, consent_db, "Согласия", "SQL")
+Rel(access_control_service, smart_home_db, "Права доступа", "SQL")
+Rel(iot_device_service, smart_home_db, "Статус устройств", "SQL")
+Rel(video_streaming_service, smart_home_db, "Логи видеосессий", "SQL")
+
+' Интеграция между доменами Housing
+Rel(smart_home_service, housing_crm, "Получение данных собственников", "REST")
+Rel(smart_home_service, access_control_service, "Управление правами", "REST")
+Rel(biometric_consent_service, housing_crm, "Привязка согласий", "REST")
+
+' Finance Domain - связи
+Rel(accountant_service, finance_db, "Финансовые операции", "SQL")
+Rel(directory_service, housing_crm, "Аутентификация", "LDAP")
+
+' Data Domain - связи (ОБНОВЛЕНО)
+Rel(data_warehouse, housing_db, "ETL процессы", "ETL")
+Rel(data_warehouse, sales_db, "ETL процессы", "ETL")
+Rel(bi_system, data_warehouse, "Аналитика", "SQL")
+' НОВАЯ СВЯЗЬ ДЛЯ АУДИТА
+Rel(audit_service, data_warehouse, "Долгосрочное хранение логов", "ETL Pipeline")
+
+' API Gateway - связи безопасности
+Rel(api_gateway, oauth_server, "Проверка токенов", "JWT")
+Rel(api_gateway, smart_home_service, "Проксирование запросов", "HTTPS/TLS 1.3")
+Rel(audit_service, smart_home_db, "Аудит операций", "SQL")
+
+' Внешние интеграции - КЛЮЧЕВЫЕ СВЯЗИ (ОБНОВЛЕНО)
+Rel(smart_home_partner, api_gateway, "Синхронизация прав доступа", "REST API/TLS 1.3 + mTLS")
+Rel(api_gateway, smart_home_service, "Управление доступом", "HTTPS/TLS 1.3")
+Rel(smart_home_partner, intercom_device, "Управление биометрией", "MQTT/TLS 1.3")
+Rel(smart_home_partner, barrier_device, "Управление распознаванием", "MQTT/TLS 1.3")
+
+' НОВЫЕ СВЯЗИ ДЛЯ ВИДЕО
+Rel(intercom_device, video_streaming_service, "Видеопоток от домофона", "RTSP/TLS → WebRTC")
+Rel(smart_home_partner, video_streaming_service, "Управление видеосессиями", "REST API/TLS 1.3")
+
+' Уведомления
+Rel(smart_home_service, notification_service, "Уведомления о доступе", "REST API/TLS")
+Rel(iot_device_service, notification_service, "Статус устройств", "REST API/TLS")
+Rel(video_streaming_service, notification_service, "Уведомления о звонках", "REST API/TLS")
+
+' Мониторинг и аудит
+Rel(audit_service, notification_service, "Алерты безопасности", "REST API/TLS")
+
+@enduml 
